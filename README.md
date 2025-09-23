@@ -167,6 +167,10 @@ If you use this code in your research, please cite:
   *CNRS, Université Sorbonne Paris Nord*  
   GitHub: [@cnrs-oguzumut](https://github.com/cnrs-oguzumut)
 
+- **Secondary Author**: Mustafa-Mert Terzi  
+  *CNRS, Université Sorbonne Paris Nord*  
+
+
 - **Code Enhancement**: Claude (Anthropic)  
   *Mathematica-to-Python energy function translation and 3D visualization improvements*
 
