@@ -30,6 +30,7 @@ def Cij_from_stereographic_projection_tr(x, y):
     gamma = (4 / 3) ** (1 / 4)
     H = gamma * np.array([[math.sqrt(2 + math.sqrt(3))/2, math.sqrt(2 - math.sqrt(3))/2], 
                          [math.sqrt(2 - math.sqrt(3))/2., math.sqrt(2 + math.sqrt(3))/2]])
+    H=np.eye(2)
     
     # Stereographic projection
     t = 2. / (1. - x ** 2. - y ** 2.)

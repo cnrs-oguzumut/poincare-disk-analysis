@@ -221,9 +221,9 @@ def poincare_plot_energy_with_f_matrices(config, f_matrices, name, pvmin, pvmax)
         
         # Plot boundaries
         ax.contour(x_img_grid, y_img_grid, c12_grid, levels=[0], 
-                  colors=['gray'], linewidths=1, alpha=0.7)
+                  colors=['brown'], linewidths=1, alpha=0.7)
         ax.contour(x_img_grid, y_img_grid, c12_grid - c11_grid, levels=[0], 
-                  colors=['gray'], linewidths=1, alpha=0.7)
+                  colors=['black'], linewidths=1, alpha=0.7)
         ax.contour(x_img_grid, y_img_grid, c12_grid - c22_grid, levels=[0], 
                   colors=['gray'], linewidths=1, alpha=0.7)
         
@@ -253,7 +253,7 @@ def poincare_plot_energy_with_f_matrices(config, f_matrices, name, pvmin, pvmax)
     fig.savefig(name + '.png', bbox_inches='tight', dpi=150)
     plt.close(fig)
 
-def poincare_plot_energy_with_precise_boundaries(config, name, pvmin, pvmax):
+def poincare_plot_energy_with_precise_boundaries(config, name, pvmin, pvmax, disc):
     """
     Plot energy on PoincarÃ© disk with precise fundamental domain boundaries.
     
@@ -274,7 +274,6 @@ def poincare_plot_energy_with_precise_boundaries(config, name, pvmin, pvmax):
     plt.rc('font', family='serif')
     ax = fig.add_subplot(111)
     
-    disc = 1000
     colmap = matplotlib.cm.RdYlBu_r
     m = ax.imshow(config, origin='lower', interpolation='none', 
                  cmap=colmap, vmin=pvmin, vmax=pvmax)
@@ -306,7 +305,7 @@ def poincare_plot_energy_with_precise_boundaries(config, name, pvmin, pvmax):
     # Plot boundary Câ‚â‚‚ = 0
     try:
         contour1 = ax.contour(x_img, y_img, c12_grid, levels=[0], 
-                             colors=['black'], linewidths=2)
+                             colors=['red'], linewidths=2)
         path = contour1.collections[0].get_paths()[0]
         vertices = path.vertices
         mid_idx = len(vertices) // 2
@@ -320,7 +319,7 @@ def poincare_plot_energy_with_precise_boundaries(config, name, pvmin, pvmax):
     try:
         diff_c11 = c12_grid - c11_grid
         contour2 = ax.contour(x_img, y_img, diff_c11, levels=[0], 
-                             colors=['black'], linewidths=2)
+                             colors=['yellow'], linewidths=2)
         path = contour2.collections[0].get_paths()[0]
         vertices = path.vertices
         mid_idx = len(vertices) // 2
@@ -334,7 +333,7 @@ def poincare_plot_energy_with_precise_boundaries(config, name, pvmin, pvmax):
     try:
         diff_c22 = c12_grid - c22_grid
         contour3 = ax.contour(x_img, y_img, diff_c22, levels=[0], 
-                             colors=['black'], linewidths=2)
+                             colors=['gray'], linewidths=2)
         path = contour3.collections[0].get_paths()[0]
         vertices = path.vertices
         mid_idx = len(vertices) // 2

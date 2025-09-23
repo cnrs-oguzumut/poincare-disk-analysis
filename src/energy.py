@@ -41,7 +41,7 @@ def interatomic_phi0_from_Cij(c11, c22, c12, lattice):
     
     # Calculation parameters
     scl = 1.0661
-    cut = 2.5
+    cut = 3.5
     
     phi0 = np.zeros(np.shape(c11))
     
@@ -109,3 +109,105 @@ def CfromE(e1, e2):
     Cij[1, 0] = e1[0]*e2[0] + e1[1]*e2[1]
     Cij[1, 1] = e2[0]*e2[0] + e2[1]*e2[1]
     return Cij
+
+
+
+def conti_phi0_from_Cij(c11, c22, c12, lattice):
+    """
+    Calculate interatomic energy from elastic constants.
+    
+    Parameters:
+    -----------
+    c11, c22, c12 : float or array
+        Elastic constants
+    lattice : str
+        Lattice type ('square' or 'triangular')
+    
+    Returns:
+    --------
+    energy : float or array
+        Computed energy values
+    """
+    
+    # Material parameters (you may need to adjust these based on your system)
+    if lattice == 'square':
+        K = 4.0  # Adjust based on your material
+        beta = -0.25 # Adjust based on your material
+        burgers = 1.0  # Burgers vector magnitude
+    elif lattice == 'triangular':
+        K = 1.0  # Different values for triangular lattice
+        beta = 4.0
+        burgers = 1.0
+    else:
+        raise ValueError("lattice must be 'square' or 'triangular'")
+    
+    """
+    Calculate energy for scalar or array inputs of c11, c22, c12
+    
+    Parameters:
+    c11, c22, c12: float or numpy array
+    K, burgers, beta: float
+    """
+
+    """
+    Direct translation from your clean Mathematica code.
+    This should be MUCH more reliable than the C++ mess!
+    """
+    
+    # Parameters from your Mathematica code
+    beta = -0.25
+    K = 1
+    
+    # Helper functions (direct translation from Mathematica)
+    def sqrtdetC(c11, c22, c12):
+        return np.sqrt(c11*c22 - c12**2)
+    
+    def detC(c11, c22, c12):
+        return c11*c22 - c12**2
+    
+    def trC(c11, c22, c12):
+        return c11 + c22
+    
+    def y1(c11, c22, c12):
+        return (c11 - c22) / sqrtdetC(c11, c22, c12)
+    
+    def y2(c11, c22, c12):
+        return (c11 + c22 - 4*c12) / sqrtdetC(c11, c22, c12)
+    
+    def y3(c11, c22, c12):
+        return (c11 + c22 - c12) / sqrtdetC(c11, c22, c12)
+    
+    def I1(c11, c22, c12):
+        return y3(c11, c22, c12) / 3
+    
+    def I2(c11, c22, c12):
+        return (y1(c11, c22, c12)**2 + y2(c11, c22, c12)**2/3) / 4
+    
+    def I3(c11, c22, c12):
+        return (y1(c11, c22, c12)**2 * y2(c11, c22, c12) - 
+                y2(c11, c22, c12)**3/9)
+    
+    def ksi1(c11, c22, c12):
+        return (I1(c11, c22, c12)**4 * I2(c11, c22, c12) - 
+                41 * I2(c11, c22, c12)**3 / 99 +
+                7 * I1(c11, c22, c12) * I2(c11, c22, c12) * I3(c11, c22, c12) / 66 +
+                I3(c11, c22, c12)**2 / 1056)
+    
+    def ksi3(c11, c22, c12):
+        return (4 * I2(c11, c22, c12)**3 / 11 + 
+                I1(c11, c22, c12)**3 * I3(c11, c22, c12) -
+                8 * I1(c11, c22, c12) * I2(c11, c22, c12) * I3(c11, c22, c12) / 11 +
+                17 * I3(c11, c22, c12)**2 / 528)
+    
+    # Ensure numerical stability
+    det = detC(c11, c22, c12)
+    det = np.where(det <= 0, 1e-10, det)  # Prevent issues with negative determinant
+    
+    # Main energy function (ksi)
+    energy = (beta * ksi1(c11, c22, c12) + 
+              ksi3(c11, c22, c12) +
+              K * (det - np.log(det)))
+    
+    return energy
+
+

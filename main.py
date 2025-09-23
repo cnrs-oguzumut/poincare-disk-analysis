@@ -24,10 +24,11 @@ warnings.filterwarnings('ignore')
 
 from src.projections import Cij_from_stereographic_projection_tr
 from src.lagrange import lagrange_reduction
-from src.energy import interatomic_phi0_from_Cij, convert_data_SymLog
+from src.energy import interatomic_phi0_from_Cij, conti_phi0_from_Cij,convert_data_SymLog
 from src.plotting import (poincare_plot_energy_with_precise_boundaries, 
                           poincare_plot_energy_with_f_matrices,
                           read_f_matrix_from_file)
+from src.visualization_3d import create_3d_energy_surface, make_browser_interactive_plots
 
 def generate_background_energy(disc=1000, lattice='square'):
     """
@@ -140,7 +141,7 @@ def main_standard():
     os.makedirs('figures', exist_ok=True)
     
     # Parameters
-    disc = 1000  # PoincarÃ© disk discretization
+    disc = 2000  # Poincaré disk discretization
     lattice = 'square'  # or 'triangular'
     
     # Generate stereographic projection coordinates
@@ -163,14 +164,28 @@ def main_standard():
     
     # Compute strain energy density
     print("Computing strain energy density...")
-    phi0 = interatomic_phi0_from_Cij(c11_reduced, c22_reduced, c12_reduced, lattice)
+    phi0 = conti_phi0_from_Cij(c11_reduced, c22_reduced, c12_reduced, lattice)
+    print(f"Energy range 1: {np.nanmin(phi0):.2e} to {np.nanmax(phi0):.2e}")
+
     
     # Normalize energy data
     phi0_normalized = (phi0 - np.nanmin(phi0)) / (np.nanmax(phi0) - np.nanmin(phi0))
+    phi0_normalized = (phi0 - np.nanmin(phi0)) 
     
     # Convert to symmetric log scale
     c_scale = 1e-19  # for interatomic phi0
+    c_scale = 1e-2  # for conti phi0
+
     config = convert_data_SymLog(phi0_normalized, c_scale)
+    print(f"Energy range 2: {np.nanmin(phi0_normalized):.2e} to {np.nanmax(phi0_normalized):.2e}")
+    #exit(0)
+    
+    #create_3d_interactive_energy_surface(x_, y_, phi0_normalized, 'square', 'file.pdf')
+    make_browser_interactive_plots(x_, y_, phi0_normalized, phi0_normalized, view_radius=1.)
+
+    #create_3d_energy_surface(x_, y_, phi0_normalized, 'square', 'figures/3d_square_lattice.pdf')
+    #make_browser_interactive_plots(x_, y_, config, config)
+    #make_browser_interactive_plots(x_, y_, phi0_normalized, phi0_normalized, view_radius=0.3)
     
     # Generate visualization
     print("Creating visualization...")
@@ -181,7 +196,8 @@ def main_standard():
         config, 
         output_name, 
         np.nanmin(config), 
-        0.8 * np.nanmax(config)
+        0.8 * np.nanmax(config),
+        disc
     )
     
     end_time = time.time()
@@ -195,8 +211,8 @@ def main():
     print('=' * 50)
     
     # Configuration - Change these as needed
-    mode = 'batch'  # 'standard' or 'batch'
-    folder_path = '/Users/usalman/programming/FEM_2D/factorized/lattice_triangulation/square/triangle_data'  # Path to triangle files folder
+    mode = 'standard'  # 'standard' or 'batch'
+    folder_path = '/Users/usalman/programming/FEM_2D/factorized/lattice_triangulation/simulation_test2/triangle_data'  # Path to triangle files folder
     output_folder = './figures'
     lattice = 'square'  # or 'triangular'
     
