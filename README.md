@@ -6,6 +6,13 @@ A Python toolkit for visualizing strain energy density on the Poincaré disk wit
 
 This code implements the Poincaré disk model for visualizing 2D metric tensors through stereographic projection. It applies centering transformations using a gamma parameter to shift the reference point in metric space, followed by Lagrange reduction to map metrics to the fundamental domain.
 
+
+## 3D Energy Landscape Visualization
+
+![3D Energy Surface](figures/fig_3D.png)
+
+Interactive 3D visualization of energy landscapes in the Poincaré disk with Gaussian smoothing, aspect ratio optimization, and high-resolution export capabilities.
+
 ## Features
 
 - **Stereographic projection** with centering transformation using γ = (4/3)^(1/4)
@@ -153,6 +160,15 @@ If you use this code in your research, please cite:
   year = {2024}
 }
 ```
+
+## Contributors
+
+- **Primary Author**: Oguz-Umut Salman  
+  *CNRS, Université Sorbonne Paris Nord*  
+  GitHub: [@cnrs-oguzumut](https://github.com/cnrs-oguzumut)
+
+- **Code Enhancement**: Claude (Anthropic)  
+  *Mathematica-to-Python energy function translation and 3D visualization improvements*
 
 ## Contact
 
