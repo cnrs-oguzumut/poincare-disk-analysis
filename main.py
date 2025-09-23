@@ -25,9 +25,13 @@ warnings.filterwarnings('ignore')
 from src.projections import Cij_from_stereographic_projection_tr
 from src.lagrange import lagrange_reduction
 from src.energy import interatomic_phi0_from_Cij, conti_phi0_from_Cij,convert_data_SymLog
-from src.plotting import (poincare_plot_energy_with_precise_boundaries, 
-                          poincare_plot_energy_with_f_matrices,
+# from src.plotting import (poincare_plot_energy_with_precise_boundaries, 
+#                           poincare_plot_energy_with_f_matrices,
+#                           read_f_matrix_from_file)
+from src.plotting import poincare_plot_energy_with_precise_boundaries
+from src.plotting import (poincare_plot_energy_with_f_matrices,
                           read_f_matrix_from_file)
+from src.enhanced_plotting import poincare_plot_energy_with_fundamental_domains
 from src.visualization_3d import create_3d_energy_surface, make_browser_interactive_plots
 
 def generate_background_energy(disc=1000, lattice='square'):
@@ -141,7 +145,7 @@ def main_standard():
     os.makedirs('figures', exist_ok=True)
     
     # Parameters
-    disc = 2000  # Poincaré disk discretization
+    disc = 500  # Poincaré disk discretization
     lattice = 'square'  # or 'triangular'
     
     # Generate stereographic projection coordinates
@@ -170,18 +174,23 @@ def main_standard():
     
     # Normalize energy data
     phi0_normalized = (phi0 - np.nanmin(phi0)) / (np.nanmax(phi0) - np.nanmin(phi0))
-    phi0_normalized = (phi0 - np.nanmin(phi0)) 
-    
+    phi0_normalized = (phi0 - np.nanmin(phi0)) / (np.nanmax(phi0) - np.nanmin(phi0))
+    phi0_normalized = (phi0 - np.nanmin(phi0))
     # Convert to symmetric log scale
     c_scale = 1e-19  # for interatomic phi0
     c_scale = 1e-2  # for conti phi0
+    c_scale = .5#1e-0  # for conti phi0
 
     config = convert_data_SymLog(phi0_normalized, c_scale)
     print(f"Energy range 2: {np.nanmin(phi0_normalized):.2e} to {np.nanmax(phi0_normalized):.2e}")
     #exit(0)
+
+
+
+   
     
     #create_3d_interactive_energy_surface(x_, y_, phi0_normalized, 'square', 'file.pdf')
-    make_browser_interactive_plots(x_, y_, phi0_normalized, phi0_normalized, view_radius=1.)
+    #make_browser_interactive_plots(x_, y_, phi0_normalized, phi0_normalized, view_radius=1.)
 
     #create_3d_energy_surface(x_, y_, phi0_normalized, 'square', 'figures/3d_square_lattice.pdf')
     #make_browser_interactive_plots(x_, y_, config, config)
@@ -200,6 +209,39 @@ def main_standard():
         disc
     )
     
+    output_name = f'./figures/poincare_newdisk_analysis_{saving_index}'
+
+    poincare_plot_energy_with_fundamental_domains(
+        config, 
+        output_name, 
+        np.nanmin(config), 
+        0.8 * np.nanmax(config),
+        disc,
+        shape_flag="square"  # or "triangle"
+    )
+
+
+
+
+
+
+    # Normalize energy data
+    phi0_normalized = (phi0 - np.nanmin(phi0)) / (np.nanmax(phi0) - np.nanmin(phi0))
+    phi0_normalized = (phi0 - np.nanmin(phi0)) 
+    
+    # Convert to symmetric log scale
+    c_scale = 1e-19  # for interatomic phi0
+    c_scale = 1e-2  # for conti phi0
+
+    config = convert_data_SymLog(phi0_normalized, c_scale)
+    print(f"Energy range 2: {np.nanmin(phi0_normalized):.2e} to {np.nanmax(phi0_normalized):.2e}")
+    #exit(0)
+    
+    #create_3d_interactive_energy_surface(x_, y_, phi0_normalized, 'square', 'file.pdf')
+    make_browser_interactive_plots(x_, y_, phi0_normalized, phi0_normalized, view_radius=1.)
+
+
+
     end_time = time.time()
     print(f'Analysis completed successfully!')
     print(f'Output saved as: {output_name}.pdf')

@@ -168,7 +168,7 @@ If you use this code in your research, please cite:
   GitHub: [@cnrs-oguzumut](https://github.com/cnrs-oguzumut)
 
 - **Secondary Author**: Mustafa-Mert Terzi  
-  *CNRS, Université Sorbonne Paris Nord*  
+  *Université Sorbonne Paris Nord*  
 
 
 - **Code Enhancement**: Claude (Anthropic)  

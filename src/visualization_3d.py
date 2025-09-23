@@ -336,7 +336,7 @@ def create_browser_3d_energy_surface(x_mesh, y_mesh, energy_values,
             energy_for_filtering = np.where(finite_mask, energy_filtered, background_value)
             
             # Apply Gaussian smoothing
-            gaussian_sigma = 1.5  # Smooth but not too blurry
+            gaussian_sigma = 4.5  # Smooth but not too blurry
             energy_smooth = ndimage.gaussian_filter(energy_for_filtering, 
                                                   sigma=gaussian_sigma, 
                                                   mode='constant', 
@@ -366,6 +366,7 @@ def create_browser_3d_energy_surface(x_mesh, y_mesh, energy_values,
         # Pick a random happy colorscale or use Turbo as default (most vibrant!)
         colorscale = 'Turbo'  # The happiest, most vibrant colorscale!
         colorscale = 'Rainbow' 
+        colorscale = 'Rainbow'
         
         # Create the interactive surface with enhanced styling
         surface = go.Surface(
@@ -409,8 +410,11 @@ def create_browser_3d_energy_surface(x_mesh, y_mesh, energy_values,
         # Create the figure
         fig = go.Figure(data=[surface, circle_trace])
         
-        # Update layout with happy styling
         fig.update_layout(
+            paper_bgcolor='white',  # White background
+            plot_bgcolor='white',   # White background
+            template='none',
+            showlegend=False,
             title={
                 'text': f'🌈 Smooth Energy Landscape - {lattice_type.title()} Lattice ✨<br>'
                         f'<sub>Gaussian-smoothed | View radius: {view_radius} | Drag to rotate • Scroll to zoom • Double-click to reset</sub>',
@@ -418,40 +422,50 @@ def create_browser_3d_energy_surface(x_mesh, y_mesh, energy_values,
                 'font': {'size': 18, 'color': 'darkblue'}
             },
             scene=dict(
-                aspectmode='manual',  # Override automatic scaling
-                aspectratio=dict(x=1, y=1, z=.28),  # Make z-axis much shorter
-                xaxis_title='x',
-                yaxis_title='y',
-                zaxis_title='Strain-Energy',
+                aspectmode='manual',
+                aspectratio=dict(x=1, y=1, z=.28),
                 camera=dict(
-                    eye=dict(x=1.3, y=1.3, z=1.0)  # Slightly higher view for better perspective
+                    eye=dict(x=1.3, y=1.3, z=1.0)
                 ),
-                bgcolor='white',  # Clean white background
+                bgcolor='white',  # White background
                 xaxis=dict(
-                    showgrid=True,
-                    gridcolor='lightblue',
-                    gridwidth=1,
+                    showgrid=False,        # Remove grid
+                    showline=False,        # Remove axis line
+                    showticklabels=False,  # Remove tick labels
+                    showbackground=False,  # Remove axis background plane
+                    showaxeslabels=False,  # Remove axis labels
+                    visible=False,         # Hide axis completely
+                    title='',              # Remove axis title
                     range=[-view_radius*1.1, view_radius*1.1]
                 ),
                 yaxis=dict(
-                    showgrid=True,
-                    gridcolor='lightblue',
-                    gridwidth=1,
+                    showgrid=False,        # Remove grid
+                    showline=False,        # Remove axis line
+                    showticklabels=False,  # Remove tick labels
+                    showbackground=False,  # Remove axis background plane
+                    showaxeslabels=False,  # Remove axis labels
+                    visible=False,         # Hide axis completely
+                    title='',              # Remove axis title
                     range=[-view_radius*1.1, view_radius*1.1]
                 ),
                 zaxis=dict(
-                    showgrid=True,
-                    gridcolor='lightblue',
-                    gridwidth=1,
-                    range=[0, 0.1]  # Set explicit range for your data
+                    showgrid=False,        # Remove grid
+                    showline=False,        # Remove axis line
+                    showticklabels=False,  # Remove tick labels
+                    showbackground=False,  # Remove axis background plane
+                    showaxeslabels=False,  # Remove axis labels
+                    visible=False,         # Hide axis completely
+                    title='',              # Remove axis title
+                    range=[0, 0.1]
                 )
             ),
             width=1000,
             height=700,
-            margin=dict(l=0, r=0, b=0, t=80),  # More top margin for fancy title
-            paper_bgcolor='white',
-            plot_bgcolor='white'
-)        # Save HTML file
+            margin=dict(l=0, r=0, b=0, t=80)  # More top margin for fancy title
+        )    
+        
+        
+        # Save HTML file
         fig.write_html(output_html)
         print(f"🎉 Interactive 3D plot saved to: {output_html}")
         

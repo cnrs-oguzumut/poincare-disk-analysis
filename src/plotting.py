@@ -275,6 +275,7 @@ def poincare_plot_energy_with_precise_boundaries(config, name, pvmin, pvmax, dis
     ax = fig.add_subplot(111)
     
     colmap = matplotlib.cm.RdYlBu_r
+    
     m = ax.imshow(config, origin='lower', interpolation='none', 
                  cmap=colmap, vmin=pvmin, vmax=pvmax)
     R = 0.5 * disc
