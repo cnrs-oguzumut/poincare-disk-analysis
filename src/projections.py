@@ -10,7 +10,7 @@ This module contains functions for:
 import numpy as np
 import math
 
-def Cij_from_stereographic_projection_tr(x, y):
+def Cij_from_stereographic_projection_tr(x, y, symettry="square"):
     """
     Apply stereographic projection with centering transformation.
     
@@ -28,9 +28,11 @@ def Cij_from_stereographic_projection_tr(x, y):
     """
     # Define centering transformation matrix
     gamma = (4 / 3) ** (1 / 4)
-    H = gamma * np.array([[math.sqrt(2 + math.sqrt(3))/2, math.sqrt(2 - math.sqrt(3))/2], 
-                         [math.sqrt(2 - math.sqrt(3))/2., math.sqrt(2 + math.sqrt(3))/2]])
-    H=np.eye(2)
+    if symettry=="triangular":
+        H = gamma * np.array([[math.sqrt(2 + math.sqrt(3))/2, math.sqrt(2 - math.sqrt(3))/2], 
+                            [math.sqrt(2 - math.sqrt(3))/2., math.sqrt(2 + math.sqrt(3))/2]])
+    elif symettry=="square":
+        H=np.eye(2)
     
     # Stereographic projection
     t = 2. / (1. - x ** 2. - y ** 2.)

@@ -1,2 +1,26 @@
+# OS files
 .DS_Store
-figures/.DS_Store
+*/.DS_Store
+
+# Output folders
+figures/
+figures_lagrange/
+figures_real/
+legacy_files/
+
+# Data folders (large)
+triangle_data/
+
+# Output files
+*.mp4
+*.png
+*.pdf
+*.fig
+acoustic_study_results.dat
+
+# Python artifacts
+__pycache__/
+*.pyc
+
+# Keep essential data
+!stability_boundary_original.dat

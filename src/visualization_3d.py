@@ -260,7 +260,7 @@ from scipy import ndimage
 
 def create_browser_3d_energy_surface(x_mesh, y_mesh, energy_values, 
                                     lattice_type='square',
-                                    energy_cap_percentile=38,
+                                    energy_cap_percentile=70,
                                     view_radius=1.,  # NEW: smaller radius to focus on center
                                     output_html='3d_energy_interactive.html',
                                     auto_open=True):
@@ -281,6 +281,8 @@ def create_browser_3d_energy_surface(x_mesh, y_mesh, energy_values,
     try:
         import plotly.graph_objects as go
         import plotly.io as pio
+        import numpy as np
+        from scipy import ndimage
         
         print("Creating smooth & happy interactive browser-based 3D plot! 🌈✨")
         print(f"View radius: {view_radius} (showing central {view_radius*100:.0f}% of disk)")
@@ -300,8 +302,7 @@ def create_browser_3d_energy_surface(x_mesh, y_mesh, energy_values,
                 print(f"Radius {test_radius}: {np.min(test_finite):.2e} to {np.max(test_finite):.2e} (n={len(test_finite)})")
             else:
                 print(f"Radius {test_radius}: No finite values")
-                # Mask outside specified radius
-
+        
         
         
         
@@ -317,7 +318,7 @@ def create_browser_3d_energy_surface(x_mesh, y_mesh, energy_values,
         print(f"Energy range before Cap high energies: {np.nanmin(energy_filtered):.2e} to {np.nanmax(energy_filtered):.2e}")
 
         if len(finite_energies) > 0:
-            high_energy_cap = np.percentile(finite_energies, energy_cap_percentile)
+            high_energy_cap = np.percentile(finite_energies, 38)
             n_capped = np.sum(energy_filtered > high_energy_cap)
             # Ignore data above percentile by setting to NaN:
             energy_filtered[energy_filtered > high_energy_cap] = np.nan
@@ -389,9 +390,15 @@ def create_browser_3d_energy_surface(x_mesh, y_mesh, energy_values,
                     show=True,
                     usecolormap=True,
                     width=2,
-                    project=dict(z=True)  # Project contours on bottom
+                    project=dict(z=False)  # Project contours on bottom
                 )
             ),
+            # MODIFIED: Add a colorbar dictionary to control its position
+            # colorbar=dict(
+            #     x=0.8,  # Move the colorbar closer to the plot
+            #     title='Strain-Energy Density' # You can add a title if you like
+            # ),
+            #showscale=False,  # Hide color scale for cleaner look
             name=f'{lattice_type.title()} Lattice'
         )
         
@@ -410,14 +417,19 @@ def create_browser_3d_energy_surface(x_mesh, y_mesh, energy_values,
         # Create the figure
         fig = go.Figure(data=[surface, circle_trace])
         
+        #
+        # MODIFIED LAYOUT SECTION:
+        # - Title text is now an empty string.
+        # - Top margin `t` is reduced to 20.
+        # - All axis visibility settings remain False to hide the axes.
+        #
         fig.update_layout(
             paper_bgcolor='white',  # White background
             plot_bgcolor='white',   # White background
             template='none',
             showlegend=False,
             title={
-                'text': f'🌈 Smooth Energy Landscape - {lattice_type.title()} Lattice ✨<br>'
-                        f'<sub>Gaussian-smoothed | View radius: {view_radius} | Drag to rotate • Scroll to zoom • Double-click to reset</sub>',
+                'text': '', # Title is now an empty string.
                 'x': 0.5,
                 'font': {'size': 18, 'color': 'darkblue'}
             },
@@ -456,12 +468,12 @@ def create_browser_3d_energy_surface(x_mesh, y_mesh, energy_values,
                     showaxeslabels=False,  # Remove axis labels
                     visible=False,         # Hide axis completely
                     title='',              # Remove axis title
-                    range=[0, 0.1]
+                    range=[0, np.nanmax(z_surface)]
                 )
             ),
             width=1000,
             height=700,
-            margin=dict(l=0, r=0, b=0, t=80)  # More top margin for fancy title
+            margin=dict(l=0, r=0, b=0, t=20)  # Reduced top margin to 20
         )    
         
         
@@ -484,15 +496,11 @@ def create_browser_3d_energy_surface(x_mesh, y_mesh, energy_values,
         print("• Surface: Gaussian-smoothed for silky appearance")
         
         return fig
-        
+    
     except ImportError:
-        print("Plotly not installed. Installing now...")
-        import subprocess
-        import sys
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "plotly"])
+        print("Please install plotly, numpy and scipy to run this function:")
+        print("pip install plotly numpy scipy")
         
-        print("Plotly installed! Please run the function again.")
-        return None
 
 # Bonus function to try different happy colorscales
 def try_different_colorscales(x_mesh, y_mesh, energy_values, lattice_type='square'):
@@ -573,9 +581,10 @@ def create_browser_comparison(x_mesh, y_mesh, energy_square, energy_triangular,
             surface = go.Surface(
                 x=x_mesh, y=y_mesh, z=z_surface,
                 colorscale=colorscale,
-                showscale=(i==1),  # Show colorbar only on right plot
+                #showscale=(i==1),  # Show colorbar only on right plot
+                showscale=False,  # Show colorbar only on right plot
                 opacity=0.9,
-                name=f'{lattice_name} Lattice'
+                name=f'{lattice_name} Lattice',
             )
             
             fig.add_trace(surface, row=1, col=i+1)
@@ -583,8 +592,10 @@ def create_browser_comparison(x_mesh, y_mesh, energy_square, energy_triangular,
         # Update layout
         fig.update_layout(
             title=f'Interactive Comparison: Square vs Triangular Lattices (r ≤ {view_radius})',
-            height=600,
-            width=1400
+            autosize=True,
+            coloraxis_showscale=False,
+            height=600*8,
+            width=1400*8
         )
         
         # Update scene axes to match the view radius
