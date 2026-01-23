@@ -517,7 +517,7 @@ def generate_background_energy(disc=1000, lattice='square'):
     
     return config, pvmin, pvmax
 
-def process_triangle_files(folder_path, output_folder='figures', lattice='square', stability_file=None, start_file=None):
+def process_triangle_files(folder_path, output_folder='figures', lattice='square', stability_file=None, start_file=None, n_stability_copies=1):
     """
     Process all triangle files in a folder and generate Poincaré disk plots.
     
@@ -602,59 +602,75 @@ def process_triangle_files(folder_path, output_folder='figures', lattice='square
         
         # Create scatter plot
         # poincare_plot_energy_with_f_matrices(config, f_matrices, output_name, pvmin, pvmax, plot_mode="scatter", stability_file=stability_file)
-        poincare_plot_energy_with_f_matrices(config, f_matrices, output_name, pvmin, pvmax, plot_mode="density", stability_file=stability_file)
+        poincare_plot_energy_with_f_matrices(config, f_matrices, output_name, pvmin, pvmax, plot_mode="density", stability_file=stability_file, n_stability_copies=n_stability_copies)
         print(f"  Saved: {output_name}.png")
 
+
+def save_full_grid_to_xyz(x_grid, y_grid, data_grid, filename="poincare_heatmap_data.xyz"):
+    """Saves a full grid. Coordinates are kept, data uses NaN for masking."""
+    # Flatten using 'C' order to maintain row-major alignment
+    x_flat = x_grid.flatten(order='C')
+    y_flat = y_grid.flatten(order='C')
+    z_flat = data_grid.flatten(order='C')
+    
+    combined = np.column_stack((x_flat, y_flat, z_flat))
+    
+    # Save as space-separated XYZ
+    np.savetxt(filename, combined, fmt='%.8e', header='X Y Z', comments='')
+    print(f"Successfully exported {len(z_flat)} points to {filename}")
+
 def main_standard():
-    """Standard analysis workflow (original functionality)."""
-    print('Lagrange reduction and PoincarÃ© disk projection with centered metrics')
-    
+    print('Lagrange reduction and Poincaré disk projection')
     start_time = time.time()
-    
-    # Create output directory
     os.makedirs('figures', exist_ok=True)
     
     # Parameters
-    disc = 1000  # Poincaré disk discretization
-    lattice = 'square'  # or 'triangular'
+    disc = 1000 
+    lattice = 'square'
     symmetry_projection = 'square'  # 'square' or 'triangular' 
+
     
-    # Generate stereographic projection coordinates
-    print("Generating stereographic projection coordinates...")
-    x, y = np.linspace(-.999, .999, num=disc, endpoint=True), np.linspace(-.999, .999, num=disc, endpoint=True)
-    x_, y_ = np.meshgrid(x, y)
+    # 1. Generate Coordinates
+    # x_, y_ are for the math (will have NaNs)
+    # x_grid, y_grid are for the FILE (must be clean)
+    x = np.linspace(-.999, .999, num=disc, endpoint=True)
+    y = np.linspace(-.999, .999, num=disc, endpoint=True)
+    x_grid, y_grid = np.meshgrid(x, y)
     
-    # Mask values outside PoincarÃ© disk
-    x_ = np.where(x_**2 + y_**2 - (.999)**2 >= 1.e-6, np.nan, x_)
-    y_ = np.where(x_**2 + y_**2 - (.999)**2 >= 1.e-6, np.nan, y_)
     
-    # Apply stereographic projection with centering transformation
-    print("Applying stereographic projection with centering transformation...")
-    c11, c22, c12, c11t, c22t, c12t = Cij_from_stereographic_projection_tr(x_, y_,lattice)
+    # Create math mask
+    x_math = np.where(x_grid**2 + y_grid**2 - (.999)**2 >= 1.e-6, np.nan, x_grid)
+    y_math = np.where(x_grid**2 + y_grid**2 - (.999)**2 >= 1.e-6, np.nan, y_grid)
     
-    # Perform Lagrange reduction on centered metrics
-    print("Performing Lagrange reduction...")
+    # 2. Run your existing math
+    c11, c22, c12, c11t, c22t, c12t = Cij_from_stereographic_projection_tr(x_math, y_math, lattice)
     c11_reduced, c22_reduced, c12_reduced, iterations = lagrange_reduction(c11, c22, c12)
-    print(f"Lagrange reduction completed after {iterations} iterations")
-    
-    # Compute strain energy density
-    print("Computing strain energy density...")
     phi0 = conti_phi0_from_Cij(c11_reduced, c22_reduced, c12_reduced, lattice)
-    print(f"Energy range 1: {np.nanmin(phi0):.2e} to {np.nanmax(phi0):.2e}")
+    
+    # 3. Normalize and Log Scale
+    phi0_min = np.nanmin(phi0)
+    phi0_max = np.nanmax(phi0)
+    phi0_normalized = (phi0 - phi0_min) / (phi0_max - phi0_min)
+    
+    c_scale = 1e-13
+    config = convert_data_SymLog(phi0_normalized, c_scale)
+    #Apply the mask while data is still a 2D matrix
+    # Points where radius > 0.999 become NaN
+    mask_2d = (x_grid**2 + y_grid**2) > (0.999**2 + 1e-6)
+    config_masked = np.where(mask_2d, np.nan, config)
 
     
-    # Normalize energy data
-    phi0_normalized = (phi0 - np.nanmin(phi0)) / (np.nanmax(phi0) - np.nanmin(phi0))
-    phi0_normalized = (phi0 - np.nanmin(phi0)) / (np.nanmax(phi0) - np.nanmin(phi0))
-    #phi0_normalized = (phi0 - np.nanmin(phi0))
-    # Convert to symmetric log scale
-    c_scale = 1e-19  # for interatomic phi0
-    c_scale = 1e-2  # for conti phi0
-    c_scale = .5#1e-0  # for conti phi0
-    c_scale = 1e-13
-
-    config = convert_data_SymLog(phi0_normalized, c_scale)
-    print(f"Energy range 2: {np.nanmin(phi0_normalized):.2e} to {np.nanmax(phi0_normalized):.2e}")
+    # 5. Save the full grid
+    # SAVE using a rock-solid column stack
+    # .ravel() is faster and safer for aligned flattening
+    combined = np.column_stack((
+        x_grid.ravel(), 
+        y_grid.ravel(), 
+        config_masked.ravel()
+    ))
+    
+    np.savetxt("poincare_heatmap_data.xyz", combined, fmt='%.8e')    
+    print(f'Analysis completed in {time.time() - start_time:.2f}s')
     #exit(0)
 
 
@@ -829,16 +845,31 @@ def process_path_mode(alpha_min=-2.0, alpha_max=2.0, n_steps=100, theta_deg=0.0,
 
         # Comparison of Elastic V1 and V2
         if C_v1 is not None and C_v2 is not None:
+            # We also get the original (before reduction) metrics from c11, c22, c12
             diff = np.abs(C_v1 - C_v2)
-            comparison_data.append((alpha, diff[0,0], diff[1,1], diff[0,1]))
+            comparison_data.append((alpha, c11, c22, c12, 
+                                    C_v1[0,0], C_v1[1,1], C_v1[0,1], 
+                                    C_v2[0,0], C_v2[1,1], C_v2[0,1],
+                                    diff[0,0], diff[1,1], diff[0,1]))
     
     # Save comparison data to file
     if comparison_data:
         comp_file = os.path.join(output_folder, 'elastic_comparison.dat')
         with open(comp_file, 'w') as f_out:
-            f_out.write("# alpha |C11_v1-C11_v2| |C22_v1-C22_v2| |C12_v1-C12_v2|\n")
+            header = ("# alpha | "
+                     "C11_orig C22_orig C12_orig | "
+                     "C11_v1 C22_v1 C12_v1 | "
+                     "C11_v2 C22_v2 C12_v2 | "
+                     "diff11 diff22 diff12\n")
+            f_out.write(header)
             for entry in comparison_data:
-                f_out.write(f"{entry[0]:12.6f} {entry[1]:12.8e} {entry[2]:12.8e} {entry[3]:12.8e}\n")
+                # alpha + 3 orig + 3 v1 + 3 v2 + 3 diff = 13 values
+                line = f"{entry[0]:12.6f} "
+                line += f"{entry[1]:12.6f} {entry[2]:12.6f} {entry[3]:12.6f} "
+                line += f"{entry[4]:12.6f} {entry[5]:12.6f} {entry[6]:12.6f} "
+                line += f"{entry[7]:12.6f} {entry[8]:12.6f} {entry[9]:12.6f} "
+                line += f"{entry[10]:12.8e} {entry[11]:12.8e} {entry[12]:12.8e}\n"
+                f_out.write(line)
         print(f"Elastic reduction comparison saved to: {comp_file}")
     
     # Generate plot
@@ -858,7 +889,7 @@ def main():
     quick_shear_plot(alpha_min=-2.3, alpha_max=2.3, n_points=200)
     
     # Configuration - Change these as needed
-    mode = 'batch'  # 'standard', 'batch', or 'path'
+    mode = 'standard'  # 'standard', 'batch', or 'path'
     folder_path = './triangle_data'  # Path to triangle files folder (for batch mode)
     output_folder = './figures'
     Path(output_folder).mkdir(parents=True, exist_ok=True)
@@ -873,13 +904,12 @@ def main():
         print('Running in BATCH mode - processing triangle files')
         stability_file = "./stability_boundary_original.dat"
         
-        # Check if folder exists
         if not os.path.exists(folder_path):
             print(f"Error: Folder {folder_path} not found")
-            process_triangle_files(folder_path, output_folder, lattice, stability_file=stability_file, start_file=None)
+            process_triangle_files(folder_path, output_folder, lattice, stability_file=stability_file, start_file=None, n_stability_copies=5)
         else:
             start_time = time.time()
-            process_triangle_files(folder_path, output_folder, lattice, stability_file=stability_file, start_file=None)
+            process_triangle_files(folder_path, output_folder, lattice, stability_file=stability_file, start_file=None, n_stability_copies=5)
             end_time = time.time()
             print(f'\nBatch processing completed!')
             print(f'Output saved in: {output_folder}/')

@@ -218,7 +218,7 @@ def plot_reference_lattice_points(ax, disc, project_c_to_poincare):
 
 
 
-def poincare_plot_energy_with_f_matrices(config, f_matrices, name, pvmin, pvmax, lattice="square", plot_mode="scatter", stability_file=None):
+def poincare_plot_energy_with_f_matrices(config, f_matrices, name, pvmin, pvmax, lattice="square", plot_mode="scatter", stability_file=None, n_stability_copies=1):
     """
     Plot energy on Poincaré disk with F matrix points as scatter or density overlay.
     
@@ -275,6 +275,7 @@ def poincare_plot_energy_with_f_matrices(config, f_matrices, name, pvmin, pvmax,
             Cr = np.array([[c11, c12], [c12, c22]])
             #csq, label, depth = elasticReduction(Cr) # elias
             csq = reduction_elastic_square(Cr)
+            #csq = Cr
             
             # Apply centering transformation: ctr = H^T · C · H
             # csq is the reduced C matrix
@@ -386,9 +387,27 @@ def poincare_plot_energy_with_f_matrices(config, f_matrices, name, pvmin, pvmax,
             c22_data = c22_data[stability_mask]
             c12_data = c12_data[stability_mask]
             
-            # Convert (C11, C22, C12) to stereographic coordinates
-            x_stereo_data, y_stereo_data = stereographic_projection_from_Cij_2D(c11_data, c22_data, c12_data)
+            # Define transformation matrices for copies
+            transformations = [
+                (np.array([[1, 0], [0, 1]]), r'$\det \mathbf{Q} = 0$')          # Identity (original)
+            ]
             
+            if n_stability_copies > 1:
+                # Add first 4 non-trivial copies as used in enhanced_plotting
+                transformations.extend([
+                    (np.array([[1, 1], [0, 1]]), "m=[1,1;0,1]"),
+                    (np.array([[1, -1], [0, 1]]), "m=[1,-1;0,1]"),
+                    (np.array([[1, 0], [1, 1]]), "m=[1,0;1,1]"),
+                    (np.array([[1, 0], [-1, 1]]), "m=[1,0;-1,1]")
+                ])
+                # We limit to n_stability_copies total (including original)
+                transformations = transformations[:n_stability_copies]
+
+            # Store the original filtered data to apply transformations to
+            c11_orig = c11_data.copy()
+            c22_orig = c22_data.copy()
+            c12_orig = c12_data.copy()
+
             # Helper to find connected segments and keep only the longest
             def find_longest_segment(x, y, threshold=0.1):
                 if len(x) == 0: return [], []
@@ -405,29 +424,48 @@ def poincare_plot_energy_with_f_matrices(config, f_matrices, name, pvmin, pvmax,
                 longest = max(segments, key=lambda s: len(s[0]))
                 return np.array(longest[0]), np.array(longest[1])
 
-            x_stereo_data, y_stereo_data = find_longest_segment(x_stereo_data, y_stereo_data)
+            # Define color list for copies
+            colors = ['red', 'darkblue', 'brown', 'green', 'orange']
 
-            # Smooth the boundary points
-            if len(x_stereo_data) >= 4:
-                try:
-                    # Pre-smooth to remove noise before interpolation
-                    x_stereo_smooth = gaussian_filter1d(x_stereo_data, sigma=2)
-                    y_stereo_smooth = gaussian_filter1d(y_stereo_data, sigma=2)
-                    
-                    # Spline interpolation
-                    tck, u = splprep([x_stereo_smooth, y_stereo_smooth], s=0, k=3)
-                    u_new = np.linspace(0, 1, 1000)
-                    x_stereo_data, y_stereo_data = splev(u_new, tck)
-                except Exception as e:
-                    print(f"Warning: Spline interpolation failed: {e}")
+            for idx, (mat, label) in enumerate(transformations):
+                # Apply transformation: C' = mat^T @ C @ mat
+                m11, m12 = mat[0, 0], mat[0, 1]
+                m21, m22 = mat[1, 0], mat[1, 1]
+                
+                c11_t = m11**2 * c11_orig + 2*m11*m21*c12_orig + m21**2 * c22_orig
+                c22_t = m12**2 * c11_orig + 2*m12*m22*c12_orig + m22**2 * c22_orig
+                c12_t = m11*m12*c11_orig + (m11*m22 + m12*m21)*c12_orig + m21*m22*c22_orig
+                
+                # Convert (C11, C22, C12) to stereographic coordinates
+                x_stereo_data, y_stereo_data = stereographic_projection_from_Cij_2D(c11_t, c22_t, c12_t)
+                
+                x_stereo_data, y_stereo_data = find_longest_segment(x_stereo_data, y_stereo_data)
 
-            # Convert to image coordinates
-            x_img_data = (x_stereo_data + 0.999) * (disc - 1) / (2 * 0.999)
-            y_img_data = (y_stereo_data + 0.999) * (disc - 1) / (2 * 0.999)
+                # Smooth the boundary points
+                if len(x_stereo_data) >= 4:
+                    try:
+                        # Pre-smooth to remove noise before interpolation
+                        x_stereo_smooth = gaussian_filter1d(x_stereo_data, sigma=2)
+                        y_stereo_smooth = gaussian_filter1d(y_stereo_data, sigma=2)
+                        
+                        # Spline interpolation
+                        tck, u = splprep([x_stereo_smooth, y_stereo_smooth], s=0, k=3)
+                        u_new = np.linspace(0, 1, 1000)
+                        x_stereo_data, y_stereo_data = splev(u_new, tck)
+                    except Exception as e:
+                        if idx == 0: print(f"Warning: Spline interpolation failed for {label}: {e}")
+
+                # Convert to image coordinates
+                x_img_data = (x_stereo_data + 0.999) * (disc - 1) / (2 * 0.999)
+                y_img_data = (y_stereo_data + 0.999) * (disc - 1) / (2 * 0.999)
+                
+                # Plot the stability boundary with higher zorder
+                color = colors[idx % len(colors)]
+                alpha_val = 1.0 if idx == 0 else 0.7
+                
+                ax.plot(x_img_data, y_img_data, color=color, linestyle='-', linewidth=3.0, label=label, alpha=alpha_val, zorder=25)
             
-            # Plot the stability boundary with higher zorder, red color and increased linewidth
-            ax.plot(x_img_data, y_img_data, 'r-', linewidth=3.0, label=r'$\det \mathbf{Q} = 0$', alpha=1.0, zorder=25)
-            ax.legend(loc='lower left', fontsize=10)
+            ax.legend(loc='lower left', fontsize=8, framealpha=0.5)
             
         except Exception as e:
             print(f"Warning: Could not plot stability boundary: {e}")
