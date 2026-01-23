@@ -660,17 +660,28 @@ def main_standard():
     config_masked = np.where(mask_2d, np.nan, config)
 
     
-    # 5. Save the full grid
-    # SAVE using a rock-solid column stack
-    # .ravel() is faster and safer for aligned flattening
+    # Create iterations array for column stacking
+    iter_array = np.full(c11.shape, iterations)
+
+    # 5. Save the full grid with raw and reduced metrics
+    # Columns: x, y, E_norm, iterations, C11_raw, C22_raw, C12_raw, C11_red, C22_red, C12_red
     combined = np.column_stack((
         x_grid.ravel(), 
         y_grid.ravel(), 
-        config_masked.ravel()
+        config_masked.ravel(),
+        iter_array.ravel(),
+        c11.ravel(),
+        c22.ravel(),
+        c12.ravel(),
+        c11_reduced.ravel(),
+        c22_reduced.ravel(),
+        c12_reduced.ravel()
     ))
     
-    np.savetxt("poincare_heatmap_data.xyz", combined, fmt='%.8e')    
+    header = "x y Energy_shifted_log iterations C11_raw C22_raw C12_raw C11_red C22_red C12_red"
+    np.savetxt("poincare_heatmap_data.xyz", combined, fmt='%.8e', header=header)    
     print(f'Analysis completed in {time.time() - start_time:.2f}s')
+    print(f'Data saved to poincare_heatmap_data.xyz (10 columns)')
     #exit(0)
 
 

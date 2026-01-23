@@ -24,3 +24,4 @@ __pycache__/
 
 # Keep essential data
 !stability_boundary_original.dat
+*.xyz
